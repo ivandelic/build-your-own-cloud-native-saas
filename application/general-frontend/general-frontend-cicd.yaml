@@ -1,0 +1,70 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: general-frontend
+  labels:
+    app: general-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: general-frontend
+  ports:
+    -
+      port: 80
+      targetPort: 3000
+      name: http
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: general-frontend
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    external-dns.alpha.kubernetes.io/hostname: "frontend.byos.ivandelic.com"
+spec:
+  rules:
+  - host: "frontend.byos.ivandelic.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: general-frontend
+            port:
+              number: 3000
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: general-frontend
+  labels:
+    app: general-frontend
+spec:
+  selector:
+    matchLabels:
+      app: general-frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: general-frontend
+        version: v1
+    spec:
+      containers:
+        -
+          name: general-frontend
+          image: 'eu-frankfurt-1.ocir.io/frsxwtjslf35/byos/general-frontend:${buildId}'
+          imagePullPolicy: Always
+          ports:
+            -
+              containerPort: 3000
+          env:
+            - name: REACT_APP_DEPARTMENT_API_URL
+              value: http://departments.byos.ivandelic.com/department-manager
+            - name: REACT_APP_BRANCH_API_URL
+              value: http://departments.byos.ivandelic.com/branch-manager
+      imagePullSecrets:
+        -
+          name: ocirsecret

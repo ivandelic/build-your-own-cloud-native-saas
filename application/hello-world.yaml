@@ -1,0 +1,62 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: hello-world
+  labels:
+    app: hello-world
+spec:
+  type: ClusterIP
+  selector:
+    app: hello-world
+  ports:
+    -
+      port: 80
+      targetPort: 80
+      name: http
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: hello-world
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    external-dns.alpha.kubernetes.io/hostname: "hello.byos.ivandelic.com"
+spec:
+  rules:
+  - host: "hello.byos.ivandelic.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hello-world
+            port:
+              number: 80
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: hello-world
+  labels:
+    app: hello-world
+spec:
+  selector:
+    matchLabels:
+      app: hello-world
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-world
+        version: v1
+    spec:
+      containers:
+        -
+          name: hello-world
+          image: 'nginx:latest'
+          imagePullPolicy: Always
+          ports:
+            -
+              containerPort: 80

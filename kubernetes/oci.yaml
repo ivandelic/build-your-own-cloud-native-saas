@@ -1,0 +1,10 @@
+auth:
+  region: eu-frankfurt-1
+  tenancy: <REPLACE>
+  user: <REPLACE>
+  key: |
+    -----BEGIN PRIVATE KEY-----
+    <REPLACE>
+    -----END PRIVATE KEY-----
+  fingerprint: <REPLACE>
+compartment: <REPLACE>

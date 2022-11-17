@@ -1,0 +1,30 @@
+version: 0.1             
+component: build
+timeoutInSeconds: 1000
+shell: bash
+
+env:
+  exportedVariables:
+    - buildId
+
+steps:
+  - type: Command
+    name: "Calculate buildId"
+    command: |
+      buildId=`echo ${OCI_BUILD_RUN_ID} | rev | cut -c 1-6 | rev`
+      echo "Build ID: $buildId"
+  - type: Command
+    name: "Build image"
+    command: |
+      image_name="eu-frankfurt-1.ocir.io/frsxwtjslf35/byos/departments-backend"
+      docker build -t $image_name .
+      image=$(docker images | grep $image_name | awk -F ' ' '{print $3}')
+      docker tag $image $image_name:$buildId
+
+outputArtifacts:
+  - name: departments-backend
+    type: DOCKER_IMAGE
+    location: eu-frankfurt-1.ocir.io/frsxwtjslf35/byos/departments-backend
+  - name: departments_backend_yaml
+    type: BINARY
+    location: ${OCI_PRIMARY_SOURCE_DIR}/departments-backend-cicd.yaml

@@ -1,0 +1,87 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: departments-backend
+  labels:
+    app: departments-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: departments-backend
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: departments-backend-lb
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"
+    service.beta.kubernetes.io/oci-load-balancer-backend-protocol: "HTTP"
+  labels:
+    app: departments-backend-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: departments-backend
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: departments-backend
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    external-dns.alpha.kubernetes.io/hostname: "departments.byos.ivandelic.com"
+spec:
+  rules:
+    - host: "departments.byos.ivandelic.com"
+      http:
+        paths:
+          - path: /department-manager(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: departments-backend
+                port:
+                  number: 80
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: departments-backend
+  labels:
+    app: departments-backend
+spec:
+  selector:
+    matchLabels:
+      app: departments-backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: departments-backend
+        version: v1
+    spec:
+      containers:
+        - name: departments-backend
+          image: 'eu-frankfurt-1.ocir.io/frsxwtjslf35/byos/departments-backend:${buildId}'
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: byos-mongodb
+                  key: uri
+      imagePullSecrets:
+        - name: ocirsecret
